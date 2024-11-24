@@ -2,6 +2,10 @@
 # relationship_app/views.py
 from django.views.generic.detail import DetailView
 
+
+from django.views.generic.detail import DetailView
+
+
 from django.shortcuts import render
 from .models import Book
 
@@ -43,4 +47,7 @@ class LibraryDetailView(DetailView):
     model = Library
     template_name = 'relationship_app/library_detail.html'  # The template to render
     context_object_name = 'library'  # Name of the context variable used in the template
+
+
+
 
