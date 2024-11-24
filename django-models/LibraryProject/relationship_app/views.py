@@ -20,3 +20,12 @@ class LibraryDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         # Add more data to the context if needed
         return context
+
+# relationship_app/views.py
+from django.shortcuts import render
+from .models import Book
+
+# Function-based view to list all books
+def list_books(request):
+    books = Book.objects.all()
+    return render(request, 'relationship_app/list_books.html', {'books': books})
