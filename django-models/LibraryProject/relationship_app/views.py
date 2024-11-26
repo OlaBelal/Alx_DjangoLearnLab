@@ -54,3 +54,21 @@ def member_view(request):
     View accessible only to users with the 'Member' role.
     """
     return render(request, 'relationship_app/member_view.html', {'role': 'Member'})
+from django.shortcuts import render
+from django.contrib.auth.decorators import user_passes_test
+
+def check_role(role):
+    def decorator(user):
+        return user.is_authenticated and user.userprofile.role == role
+    return decorator
+
+@user_passes_test(check_role('Admin'))
+def admin_view(request):
+    return render(request, 'admin_view.html')
+
+@user_passes_test(check_role('Librarian'))
+def librarian_view(request):
+    return render(request, 'librarian_view.html')
+
+@user_passes_test(check_role('Member'))
+def member
