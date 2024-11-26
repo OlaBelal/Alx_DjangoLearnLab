@@ -6,3 +6,8 @@ class RelationshipAppConfig(AppConfig):
     name = 'relationship_app'
 def ready(self):
     import relationship_app.signals
+
+from django.contrib import admin
+from .models import UserProfile
+
+admin.site.register(UserProfile)
