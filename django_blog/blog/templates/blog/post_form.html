@@ -1,0 +1,10 @@
+<!-- blog/templates/blog/post_form.html -->
+<h1>{{ view.title }}</h1>
+
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">{{ view.title }}</button>
+</form>
+
+<a href="{% url 'post_list' %}">Back to Post List</a>
