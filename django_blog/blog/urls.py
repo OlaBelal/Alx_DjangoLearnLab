@@ -36,6 +36,8 @@ urlpatterns = [
     # Other URLs
     path('search/', views.search, name='search'),
     path('tags/<str:tag_name>/', views.tagged_posts, name='tagged_posts'),
+     path('tags/<slug:tag_slug>/', views.PostByTagListView.as_view(), name='post_by_tag'),
+
 ]
 
 
