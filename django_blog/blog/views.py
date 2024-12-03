@@ -145,3 +145,7 @@ def search(request):
         Q(title__icontains=query) | Q(content__icontains=query) | Q(tags__name__icontains=query)
     ).distinct()  # Ensure distinct posts if they have multiple tags
     return render(request, 'blog/search_results.html', {'posts': posts, 'query': query})
+def tagged_posts(request, tag_name):
+    tag = Tag.objects.get(name=tag_name)
+    posts = tag.posts.all()
+    return render(request, 'blog/tagged_posts.html', {'posts': posts, 'tag': tag_name})
