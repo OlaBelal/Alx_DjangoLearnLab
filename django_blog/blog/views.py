@@ -134,3 +134,10 @@ class CommentDeleteView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
         comment = get_object_or_404(Comment, id=self.kwargs['pk'])
         return self.request.user == comment.author
+
+def search(request):
+    query = request.GET.get('q', '')
+    posts = Post.objects.filter(
+        Q(title__icontains=query) | Q(content__icontains=query) | Q(tags__name__icontains=query)
+    ).distinct()  # Ensure distinct posts if they have multiple tags
+    return render(request, 'blog/search_results.html', {'posts': posts, 'query': query})
