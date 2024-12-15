@@ -6,6 +6,7 @@ from .models import Post, Comment, Like
 from .serializers import PostSerializer, CommentSerializer, LikeSerializer
 from notifications.models import Notification
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
@@ -15,6 +16,17 @@ class PostViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Ensure the post is created by the logged-in user
         serializer.save(author=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def feed(self, request):
+        """
+        Get posts from users that the current user is following
+        """
+        # Get the list of users that the current user is following
+        following_users = request.user.profile.following.all()  # Assuming you have a Profile model with a 'following' field
+        posts = Post.objects.filter(author__in=following_users).order_by('-created_at')  # Order by latest post
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
