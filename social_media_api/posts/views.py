@@ -1,79 +1,120 @@
-from rest_framework import generics, permissions
+# posts/views.py
+from rest_framework import viewsets, permissions
 from rest_framework.response import Response
-from django.contrib.auth import get_user_model
-from .models import Post
-from .serializers import PostSerializer
-from rest_framework import status, permissions
-from rest_framework.decorators import api_view
-from .models import Post, Like
+from rest_framework.decorators import action
+from .models import Post, Comment, Like
+from .serializers import PostSerializer, CommentSerializer, LikeSerializer
 from notifications.models import Notification
+from django.shortcuts import get_object_or_404
 
-
-# This view will return the posts from users that the current user follows.
-class FeedView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
     serializer_class = PostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # Ensure the post is created by the logged-in user
+        serializer.save(author=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def like(self, request, pk=None):
+        post = get_object_or_404(Post, pk=pk)
+        if Like.objects.filter(post=post, user=request.user).exists():
+            return Response({"detail": "You already liked this post."}, status=400)
+
+        Like.objects.create(post=post, user=request.user)
+
+        # Create a notification for the post author
+        Notification.objects.create(
+            recipient=post.author,
+            actor=request.user,
+            verb="liked your post",
+            target=post
+        )
+
+        return Response({"detail": "Post liked successfully."}, status=201)
+
+    @action(detail=True, methods=['post'])
+    def unlike(self, request, pk=None):
+        post = get_object_or_404(Post, pk=pk)
+        like = Like.objects.filter(post=post, user=request.user).first()
+        if not like:
+            return Response({"detail": "You haven't liked this post."}, status=400)
+
+        like.delete()
+
+        # Create a notification for the post author
+        Notification.objects.create(
+            recipient=post.author,
+            actor=request.user,
+            verb="unliked your post",
+            target=post
+        )
+
+        return Response({"detail": "Post unliked successfully."}, status=200)
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def like(self, request, pk=None):
+        comment = get_object_or_404(Comment, pk=pk)
+        if Like.objects.filter(post=comment.post, user=request.user).exists():
+            return Response({"detail": "You already liked this comment."}, status=400)
+
+        Like.objects.create(post=comment.post, user=request.user)
+
+        # Create a notification for the comment's post author
+        Notification.objects.create(
+            recipient=comment.post.author,
+            actor=request.user,
+            verb="liked your comment",
+            target=comment
+        )
+
+        return Response({"detail": "Comment liked successfully."}, status=201)
+
+    @action(detail=True, methods=['post'])
+    def unlike(self, request, pk=None):
+        comment = get_object_or_404(Comment, pk=pk)
+        like = Like.objects.filter(post=comment.post, user=request.user).first()
+        if not like:
+            return Response({"detail": "You haven't liked this comment."}, status=400)
+
+        like.delete()
+
+        # Create a notification for the comment's post author
+        Notification.objects.create(
+            recipient=comment.post.author,
+            actor=request.user,
+            verb="unliked your comment",
+            target=comment
+        )
+
+        return Response({"detail": "Comment unliked successfully."}, status=200)
+
+class LikeViewSet(viewsets.ModelViewSet):
+    queryset = Like.objects.all()
+    serializer_class = LikeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Get the current authenticated user
-        user = self.request.user
+        # Get notifications for the authenticated user
+        return Notification.objects.filter(recipient=self.request.user)
 
-        # Get the list of users that the current user is following
-        following_users = user.following.all()
-
-        # Fetch posts from users that the current user is following, ordered by creation date (most recent first)
-        return Post.objects.filter(author__in=following_users).order_by('-created_at')
-
-
-
-# posts/views.py
-
-
-User = get_user_model()
-
-@api_view(['POST'])
-def like_post(request, pk):
-    post = Post.objects.get(id=pk)
-    user = request.user
-
-    # Prevent a user from liking a post more than once
-    if Like.objects.filter(post=post, user=user).exists():
-        return Response({"detail": "You already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
-
-    # Create the like
-    like = Like.objects.create(post=post, user=user)
-
-    # Create a notification for the post author
-    notification = Notification.objects.create(
-        recipient=post.author,
-        actor=user,
-        verb='liked',
-        target=post
-    )
-
-    return Response({"detail": "Post liked."}, status=status.HTTP_201_CREATED)
-
-
-@api_view(['POST'])
-def unlike_post(request, pk):
-    post = Post.objects.get(id=pk)
-    user = request.user
-
-    # Check if the user has liked the post
-    like = Like.objects.filter(post=post, user=user).first()
-    if not like:
-        return Response({"detail": "You haven't liked this post."}, status=status.HTTP_400_BAD_REQUEST)
-
-    # Remove the like
-    like.delete()
-
-    # Optionally, create a notification for the post author about the unliking
-    # You can customize this further
-    Notification.objects.create(
-        recipient=post.author,
-        actor=user,
-        verb='unliked',
-        target=post
-    )
-
-    return Response({"detail": "Post unliked."}, status=status.HTTP_200_OK)
+    @action(detail=False, methods=['get'])
+    def unread(self, request):
+        # Fetch only unread notifications for the user
+        unread_notifications = self.get_queryset().filter(is_read=False)
+        serializer = self.get_serializer(unread_notifications, many=True)
+        return Response(serializer.data)
