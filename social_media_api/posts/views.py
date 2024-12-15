@@ -75,3 +75,42 @@ class PostViewSet(viewsets.ModelViewSet):
 
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data)
+        from rest_framework import generics
+from .models import Post, Comment
+from .serializers import PostSerializer, CommentSerializer
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+class PostListView(generics.ListCreateAPIView):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        # Retrieve all posts
+        posts = self.queryset
+        serializer = self.get_serializer(posts, many=True)
+        return Response(serializer.data)
+
+class CommentListView(generics.ListCreateAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        post_id = self.kwargs['post_id']
+        comments = Comment.objects.filter(post_id=post_id)  # Get comments for a specific post
+        serializer = self.get_serializer(comments, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        # Add new comment to a post
+        post_id = self.kwargs['post_id']
+        data = request.data
+        data['post'] = post_id
+        serializer = self.get_serializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
