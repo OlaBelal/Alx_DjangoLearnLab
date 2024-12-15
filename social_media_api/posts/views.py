@@ -1,13 +1,12 @@
 # posts/views.py
+
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404  
+from django.shortcuts import get_object_or_404  # Correct import for get_object_or_404
 from .models import Post, Like
 from .serializers import PostSerializer
 from notifications.models import Notification
-from django.shortcuts import get_object_or_404  
-
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
@@ -16,8 +15,13 @@ class PostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
-        # Correct usage of get_object_or_404 from django.shortcuts
+        """
+        Allows a user to like a post.
+        Creates a like if not already liked and generates a notification.
+        """
         post = get_object_or_404(Post, pk=pk)
+
+        # Check if the user has already liked the post
         like, created = Like.objects.get_or_create(user=request.user, post=post)
 
         if not created:
@@ -35,7 +39,13 @@ class PostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def unlike(self, request, pk=None):
+        """
+        Allows a user to unlike a post.
+        Removes the like and generates a notification.
+        """
         post = get_object_or_404(Post, pk=pk)
+
+        # Check if the user has liked the post
         like = Like.objects.filter(post=post, user=request.user).first()
         if not like:
             return Response({"detail": "You haven't liked this post."}, status=400)
@@ -51,5 +61,18 @@ class PostViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"detail": "Post unliked successfully."}, status=200)
-post = get_object_or_404(Post, pk=pk)
-        
+
+    @action(detail=False, methods=['get'])
+    def feed(self, request):
+        """
+        Returns the feed for the current user, including posts from followed users.
+        """
+        user = request.user
+        following_users = user.following.all()
+
+        # Get posts from users the current user is following
+        posts = Post.objects.filter(author__in=following_users).order_by('-created_at')
+
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data)
+
