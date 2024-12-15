@@ -2,7 +2,7 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404  # Correct import from django.shortcuts
 from .models import Post, Comment, Like
 from .serializers import PostSerializer, CommentSerializer, LikeSerializer
 from notifications.models import Notification
@@ -29,7 +29,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
-        # Corrected the usage of get_object_or_404
+        # Corrected the usage of get_object_or_404 from django.shortcuts
         post = get_object_or_404(Post, pk=pk)
         # Use get_or_create to handle like
         like, created = Like.objects.get_or_create(user=request.user, post=post)
