@@ -3,7 +3,7 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404  # Correct import for get_object_or_404
+from rest_framework import generics  # Import generics to use get_object_or_404
 from .models import Post, Like
 from .serializers import PostSerializer
 from notifications.models import Notification
@@ -19,7 +19,7 @@ class PostViewSet(viewsets.ModelViewSet):
         Allows a user to like a post.
         Creates a like if not already liked and generates a notification.
         """
-        post = get_object_or_404(Post, pk=pk)
+        post = generics.get_object_or_404(Post, pk=pk)  # Using get_object_or_404 exactly as requested
 
         # Check if the user has already liked the post
         like, created = Like.objects.get_or_create(user=request.user, post=post)
@@ -43,7 +43,7 @@ class PostViewSet(viewsets.ModelViewSet):
         Allows a user to unlike a post.
         Removes the like and generates a notification.
         """
-        post = get_object_or_404(Post, pk=pk)
+        post = generics.get_object_or_404(Post, pk=pk)  # Using get_object_or_404 exactly as requested
 
         # Check if the user has liked the post
         like = Like.objects.filter(post=post, user=request.user).first()
@@ -75,4 +75,3 @@ class PostViewSet(viewsets.ModelViewSet):
 
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data)
-
