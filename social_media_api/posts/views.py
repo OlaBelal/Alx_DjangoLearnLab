@@ -2,10 +2,10 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404
 from .models import Post, Comment, Like
 from .serializers import PostSerializer, CommentSerializer, LikeSerializer
 from notifications.models import Notification
-from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -22,7 +22,6 @@ class PostViewSet(viewsets.ModelViewSet):
         """
         Get posts from users that the current user is following
         """
-        # Get the list of users that the current user is following
         following_users = request.user.profile.following.all()  # Assuming you have a Profile model with a 'following' field
         posts = Post.objects.filter(author__in=following_users).order_by('-created_at')  # Order by latest post
         serializer = PostSerializer(posts, many=True)
@@ -31,10 +30,11 @@ class PostViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
         post = get_object_or_404(Post, pk=pk)
-        if Like.objects.filter(post=post, user=request.user).exists():
+        # Use get_or_create to handle like
+        like, created = Like.objects.get_or_create(user=request.user, post=post)
+        
+        if not created:
             return Response({"detail": "You already liked this post."}, status=400)
-
-        Like.objects.create(post=post, user=request.user)
 
         # Create a notification for the post author
         Notification.objects.create(
@@ -76,10 +76,10 @@ class CommentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
         comment = get_object_or_404(Comment, pk=pk)
-        if Like.objects.filter(post=comment.post, user=request.user).exists():
-            return Response({"detail": "You already liked this comment."}, status=400)
+        like, created = Like.objects.get_or_create(user=request.user, post=comment.post)
 
-        Like.objects.create(post=comment.post, user=request.user)
+        if not created:
+            return Response({"detail": "You already liked this comment."}, status=400)
 
         # Create a notification for the comment's post author
         Notification.objects.create(
