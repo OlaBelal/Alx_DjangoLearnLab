@@ -29,6 +29,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
+        # Corrected the usage of get_object_or_404
         post = get_object_or_404(Post, pk=pk)
         # Use get_or_create to handle like
         like, created = Like.objects.get_or_create(user=request.user, post=post)
