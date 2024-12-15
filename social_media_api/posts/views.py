@@ -2,10 +2,12 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404  # Correct import from django.shortcuts
+from django.shortcuts import get_object_or_404  
 from .models import Post, Like
 from .serializers import PostSerializer
 from notifications.models import Notification
+from django.shortcuts import get_object_or_404  
+
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
@@ -49,3 +51,5 @@ class PostViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"detail": "Post unliked successfully."}, status=200)
+post = get_object_or_404(Post, pk=pk)
+        
