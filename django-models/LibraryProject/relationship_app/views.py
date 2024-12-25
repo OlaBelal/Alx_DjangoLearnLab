@@ -7,7 +7,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required,user_passes_test
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import login
-
+from django.contrib.auth.decorators import user_passes_test
 
 
 
@@ -60,3 +60,21 @@ def librarian_view(request):
 def member_view(request):
     return render(request, 'member_view.html', {'message': 'Welcome Member!'})
  
+ 
+
+
+
+# Member View
+@user_passes_test(lambda user: user.userprofile.role == 'Member')
+def member_view(request):
+    return render(request, 'relationship_app/member_view.html')
+
+# Librarian View
+@user_passes_test(lambda user: user.userprofile.role == 'Librarian')
+def librarian_view(request):
+    return render(request, 'relationship_app/librarian_view.html')
+
+# Admin View
+@user_passes_test(lambda user: user.userprofile.role == 'Admin')
+def admin_view(request):
+    return render(request, 'relationship_app/admin_view.html')
